@@ -7,31 +7,32 @@ components:
       image: quay.io/ansible/ansible-creator-ee:latest
       memoryLimit: 8Gi
       mountSources: true
+      env:
+        - name: MAMBA_ROOT_PREFIX
+          value: /projects/.mamba
 commands:
-  - id: bootstrap-and-build
+  - id: full-environment-build
     exec:
       component: python-builder
-      # We wrap this in a subshell to capture all logs to /projects/build.log
+      workingDir: /projects
       commandLine: |
-        exec > /projects/build.log 2>&1
-        echo "--- Build started at $(date) ---"
-
-        # 1. Install Micromamba if missing
+        echo "🚀 Starting Build Process..."
+        
+        # 1. Setup Micromamba
         if [ ! -f /projects/bin/micromamba ]; then
-          echo "Installing Micromamba..."
           mkdir -p /projects/bin
           curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xj -C /projects/bin --strip-components=1 bin/micromamba
         fi
-
-        # 2. Define Env Vars for this session
-        export MAMBA_ROOT_PREFIX=/projects/.mamba
+        
+        # 2. Add to PATH for this session
         export PATH=$PATH:/projects/bin
-
-        # 3. Create the environment
-        echo "Resolving dependencies from /projects/environment.yml..."
-        /projects/bin/micromamba create -y -p /projects/rm_env -f /projects/environment.yml
-
-        echo "--- Build complete at $(date) ---"
-events:
-  postStart:
-    - bootstrap-and-build
+        
+        # 3. Create Environment
+        echo "📦 Creating Conda environment at /projects/rm_env..."
+        micromamba create -y -p /projects/rm_env -f /projects/environment.yml
+        
+        # 4. Install Packager
+        echo "🔧 Installing conda-pack..."
+        micromamba run -p /projects/rm_env pip install conda-pack
+        
+        echo "✅ DONE! Check /projects/rm_env"
