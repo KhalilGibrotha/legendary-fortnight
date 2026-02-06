@@ -4,30 +4,34 @@ metadata:
 components:
   - name: python-builder
     container:
-      image: quay.io/ansible/ansible-creator-ee:latest # Or your preferred Ansible starting image
+      image: quay.io/ansible/ansible-creator-ee:latest
       memoryLimit: 8Gi
-      cpuLimit: 4000m
       mountSources: true
-      env:
-        - name: MAMBA_ROOT_PREFIX
-          value: /projects/.mamba
 commands:
-  - id: install-mamba
+  - id: bootstrap-and-build
     exec:
       component: python-builder
+      # We wrap this in a subshell to capture all logs to /projects/build.log
       commandLine: |
+        exec > /projects/build.log 2>&1
+        echo "--- Build started at $(date) ---"
+
+        # 1. Install Micromamba if missing
         if [ ! -f /projects/bin/micromamba ]; then
-          echo "Installing Micromamba to /projects/bin..."
+          echo "Installing Micromamba..."
           mkdir -p /projects/bin
           curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xj -C /projects/bin --strip-components=1 bin/micromamba
         fi
-  - id: build-env
-    exec:
-      component: python-builder
-      commandLine: |
+
+        # 2. Define Env Vars for this session
+        export MAMBA_ROOT_PREFIX=/projects/.mamba
+        export PATH=$PATH:/projects/bin
+
+        # 3. Create the environment
+        echo "Resolving dependencies from /projects/environment.yml..."
         /projects/bin/micromamba create -y -p /projects/rm_env -f /projects/environment.yml
-        echo "Environment built at /projects/rm_env"
+
+        echo "--- Build complete at $(date) ---"
 events:
   postStart:
-    - install-mamba
-    - build-env
+    - bootstrap-and-build
