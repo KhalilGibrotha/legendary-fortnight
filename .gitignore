@@ -1,0 +1,5 @@
+/rm_env/
+*/rm_env/
+/.mamba/
+/bin/
+*.log
