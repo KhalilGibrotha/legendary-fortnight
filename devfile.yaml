@@ -36,3 +36,4 @@ commands:
         micromamba run -p /projects/rm_env pip install conda-pack
         
         echo "✅ DONE! Check /projects/rm_env"
+        
