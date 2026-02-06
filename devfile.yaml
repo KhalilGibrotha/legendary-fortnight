@@ -4,12 +4,9 @@ metadata:
 components:
   - name: python-builder
     container:
-      image: quay.io/ansible/ansible-creator-ee:latest
+      image: registry.access.redhat.com/ubi8/python-39
       memoryLimit: 8Gi
       mountSources: true
-      env:
-        - name: MAMBA_ROOT_PREFIX
-          value: /projects/.mamba
 commands:
   - id: full-environment-build
     exec:
